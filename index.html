@@ -7,9 +7,23 @@
 <style>
 body { margin:0; }
 #map { height:100vh; }
+
 .menu {
- position:absolute; top:10px; left:10px;
- background:white; padding:10px; z-index:1000;
+ position:absolute;
+ top:10px;
+ left:10px;
+ background:white;
+ padding:10px;
+ z-index:1000;
+}
+
+.bottom {
+ position:absolute;
+ bottom:10px;
+ left:10px;
+ background:white;
+ padding:10px;
+ z-index:1000;
 }
 </style>
 </head>
@@ -19,6 +33,11 @@ body { margin:0; }
 <button onclick="toggleStation()">Станции</button>
 <button onclick="toggleTrack()">Рельсы</button>
 <button onclick="spawnTrain()">+ Поезд</button>
+<button onclick="startSchedule()">Расписание</button>
+</div>
+
+<div class="bottom">
+<button onclick="clearAll()">Очистить всё</button>
 </div>
 
 <div id="map"></div>
