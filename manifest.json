@@ -1,0 +1,6 @@
+{
+"name":"Train PWA",
+"short_name":"Train",
+"start_url":"./index.html",
+"display":"standalone"
+}
