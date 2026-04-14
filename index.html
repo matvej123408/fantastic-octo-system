@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Train PWA</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+body { margin:0; }
+#map { height:100vh; }
+.menu {
+ position:absolute; top:10px; left:10px;
+ background:white; padding:10px; z-index:1000;
+}
+</style>
+</head>
+<body>
+
+<div class="menu">
+<button onclick="toggleStation()">Станции</button>
+<button onclick="toggleTrack()">Рельсы</button>
+<button onclick="spawnTrain()">+ Поезд</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
