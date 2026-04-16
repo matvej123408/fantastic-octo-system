@@ -1,3 +1,4 @@
+// ===== КАРТА =====
 let map = L.map('map').setView([49,31],6);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -9,10 +10,15 @@ let smoothRail = [];
 let speedLimits = [];
 let signals = [];
 let trains = [];
+let routes = [];
+
+let currentRoute = [];
+let routeMode = false;
 
 let stationMode=false;
 let trackMode=false;
 let signalMode=false;
+
 let scheduleInterval=null;
 
 // ===== UI =====
@@ -32,9 +38,19 @@ function updateTrainList(){
 }
 
 // ===== РЕЖИМЫ =====
-function toggleStation(){ stationMode=!stationMode; trackMode=false; signalMode=false; }
-function toggleTrack(){ trackMode=!trackMode; stationMode=false; signalMode=false; }
-function toggleSignal(){ signalMode=!signalMode; stationMode=false; trackMode=false; }
+function toggleStation(){ stationMode=!stationMode; trackMode=false; signalMode=false; routeMode=false; }
+function toggleTrack(){ trackMode=!trackMode; stationMode=false; signalMode=false; routeMode=false; }
+function toggleSignal(){ signalMode=!signalMode; stationMode=false; trackMode=false; routeMode=false; }
+
+function toggleRoute(){
+ routeMode=!routeMode;
+ stationMode=false;
+ trackMode=false;
+ signalMode=false;
+
+ currentRoute = [];
+ setStatus("Выбирай станции для маршрута");
+}
 
 // ===== СГЛАЖИВАНИЕ =====
 function smoothLine(points){
@@ -56,6 +72,7 @@ function smoothLine(points){
 // ===== КЛИК =====
 map.on('click', e=>{
 
+ // станции
  if(stationMode){
   let name = prompt("Название станции:");
   if(!name) return;
@@ -65,6 +82,7 @@ map.on('click', e=>{
   saveData();
  }
 
+ // рельсы
  if(trackMode){
   railPoints.push(e.latlng);
 
@@ -78,21 +96,65 @@ map.on('click', e=>{
   }
  }
 
+ // светофор
  if(signalMode){
   let m=L.circleMarker(e.latlng,{radius:6,color:'red'}).addTo(map);
-
   signals.push({pos:e.latlng,busy:false,marker:m});
   saveData();
  }
 
+ // маршрут
+ if(routeMode){
+  for(let st of stations){
+    if(map.distance(e.latlng, st.pos) < 50){
+      currentRoute.push(st);
+      L.circleMarker(st.pos,{radius:10,color:'blue'}).addTo(map);
+      setStatus("Станция добавлена");
+    }
+  }
+ }
+
 });
+
+// ===== ЗАВЕРШИТЬ МАРШРУТ =====
+function finishRoute(){
+
+ if(currentRoute.length < 2){
+  alert("Минимум 2 станции");
+  return;
+ }
+
+ routes.push({
+  stations: currentRoute
+ });
+
+ routeMode = false;
+ setStatus("Маршрут создан");
+
+ saveData();
+}
 
 // ===== ПОЕЗД =====
 function spawnTrain(){
 
+ if(routes.length === 0){
+  alert("Сначала создай маршрут");
+  return;
+ }
+
+ let id = prompt("Маршрут 1-" + routes.length);
+ let route = routes[id-1];
+
+ if(!route) return;
+
  let train = {
-  marker:L.circleMarker(smoothRail[0],{radius:14,color:'black'}).addTo(map),
-  index:0,
+  route: route,
+  stationIndex: 0,
+  marker: L.circleMarker(route.stations[0].pos,{
+    radius:14,
+    color:'black'
+  }).addTo(map),
+
   t:0,
   speed:0,
   stopped:false,
@@ -112,6 +174,28 @@ function startSchedule(){
  }, min*60000);
 }
 
+// ===== СВЕТОФОР =====
+function checkSignal(train){
+
+ let pos = train.marker.getLatLng();
+
+ for(let s of signals){
+  let d = map.distance(pos, s.pos);
+
+  if(d < 50){
+    if(s.busy){
+      return true;
+    } else {
+      s.busy = true;
+      s.marker.setStyle({color:'green'});
+      return false;
+    }
+  }
+ }
+
+ return false;
+}
+
 // ===== ДВИЖЕНИЕ =====
 function updateTrains(){
 
@@ -123,36 +207,38 @@ function updateTrains(){
     return;
   }
 
-  let pos=train.marker.getLatLng();
+  if(checkSignal(train)) return;
 
-  // станции
-  for(let st of stations){
-    if(map.distance(pos,st.pos)<60){
-      train.stopped=true;
-      train.wait=200;
-      return;
-    }
+  let route = train.route;
+
+  let start = route.stations[train.stationIndex].pos;
+  let end = route.stations[(train.stationIndex+1)%route.stations.length].pos;
+
+  let pos = train.marker.getLatLng();
+
+  // остановка
+  if(map.distance(pos,start) < 50){
+    train.stopped = true;
+    train.wait = 200;
+    return;
   }
 
-  let start=smoothRail[train.index];
-  let end=smoothRail[(train.index+1)%smoothRail.length];
+  // скорость 45-60
+  let target = (45 + Math.random()*15) / 100000;
 
-  let limit=speedLimits[train.index]||60;
-  let target=limit/100000;
+  if(train.speed < target) train.speed += 0.00002;
+  else train.speed -= 0.00002;
 
-  if(train.speed<target) train.speed+=0.00002;
-  else train.speed-=0.00002;
+  train.t += train.speed;
 
-  train.t+=train.speed;
-
-  let lat=start[0]+(end[0]-start[0])*train.t;
-  let lng=start[1]+(end[1]-start[1])*train.t;
+  let lat = start.lat + (end.lat-start.lat)*train.t;
+  let lng = start.lng + (end.lng-start.lng)*train.t;
 
   train.marker.setLatLng([lat,lng]);
 
-  if(train.t>=1){
-    train.t=0;
-    train.index=(train.index+1)%smoothRail.length;
+  if(train.t >= 1){
+    train.t = 0;
+    train.stationIndex = (train.stationIndex+1)%route.stations.length;
   }
 
  });
@@ -164,7 +250,7 @@ setInterval(updateTrains,30);
 // ===== СОХРАНЕНИЕ =====
 function saveData(){
  localStorage.setItem("data", JSON.stringify({
-  stations, railPoints, speedLimits, signals
+  stations, railPoints, speedLimits, signals, routes
  }));
  setStatus("Сохранено");
 }
@@ -180,9 +266,10 @@ function loadData(){
  railPoints = d.railPoints || [];
  speedLimits = d.speedLimits || [];
  signals = d.signals || [];
+ routes = d.routes || [];
 
- // перерисовка
  stations.forEach(s=>L.marker(s.pos).addTo(map));
+
  smoothRail = smoothLine(railPoints);
  L.polyline(smoothRail,{color:'black'}).addTo(map);
 
@@ -199,5 +286,5 @@ function clearAll(){
  location.reload();
 }
 
-// авто загрузка
+// старт
 loadData();
