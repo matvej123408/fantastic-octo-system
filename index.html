@@ -9,36 +9,31 @@
 body { margin:0; font-family:Arial; }
 #map { height:100vh; }
 
-/* ===== TOP PANEL ===== */
+/* TOP BAR */
 .topbar {
  position:absolute;
- top:0;
- left:0;
- right:0;
+ top:0; left:0; right:0;
  height:50px;
  background:#222;
- color:white;
  display:flex;
  align-items:center;
  padding:5px;
  z-index:1000;
 }
-
-.topbar button{
- margin-right:10px;
- padding:5px 10px;
+.topbar button {
+ margin-right:5px;
  background:#444;
  color:white;
  border:none;
- cursor:pointer;
+ padding:6px;
 }
 
-/* ===== SIDE MENU ===== */
+/* SIDEBAR */
 .sidebar {
  position:absolute;
  top:50px;
  left:0;
- width:250px;
+ width:260px;
  bottom:0;
  background:#2b2b2b;
  color:white;
@@ -47,33 +42,33 @@ body { margin:0; font-family:Arial; }
  overflow:auto;
 }
 
-.sidebar h3 {
- margin-top:0;
-}
-
-.sidebar button {
+/* PANEL */
+.panel input, .panel select {
  width:100%;
  margin-bottom:5px;
- padding:8px;
- background:#444;
- color:white;
- border:none;
- cursor:pointer;
+ padding:5px;
 }
 
-/* ===== BOTTOM PANEL ===== */
-.bottompanel {
+.panel button {
+ width:100%;
+ padding:6px;
+ background:#555;
+ color:white;
+ border:none;
+}
+
+/* STATUS */
+.bottom {
  position:absolute;
  bottom:0;
- left:250px;
+ left:260px;
  right:0;
- height:60px;
+ height:40px;
  background:#222;
  color:white;
  display:flex;
  align-items:center;
- padding:10px;
- z-index:1000;
+ padding-left:10px;
 }
 </style>
 
@@ -81,28 +76,40 @@ body { margin:0; font-family:Arial; }
 <body>
 
 <div class="topbar">
-<button onclick="toggleStation()">Станции</button>
-<button onclick="toggleTrack()">Рельсы</button>
-<button onclick="toggleSignal()">Светофор</button>
-<button onclick="spawnTrain()">+ Поезд</button>
-<button onclick="startSchedule()">Расписание</button>
-<button onclick="saveData()">💾 Сохранить</button>
-<button onclick="loadData()">📂 Загрузить</button>
+<button onclick="setMode('station')">Станции</button>
+<button onclick="setMode('track')">Рельсы</button>
+<button onclick="setMode('signal')">Светофор</button>
+<button onclick="setMode('route')">Маршрут</button>
 </div>
 
 <div class="sidebar">
-<h3>Управление</h3>
 
-<button onclick="clearAll()">Очистить всё</button>
+<div class="panel">
+<h3>Создание станции</h3>
+<input id="stationName" placeholder="Название станции">
+</div>
 
+<div class="panel">
 <h3>Поезда</h3>
-<div id="trainList"></div>
+<select id="routeSelect"></select>
+<button onclick="spawnTrainUI()">Создать поезд</button>
+<button onclick="startScheduleUI()">Расписание</button>
+</div>
+
+<div class="panel">
+<h3>Маршрут</h3>
+<button onclick="finishRoute()">Завершить маршрут</button>
+</div>
+
+<div class="panel">
+<button onclick="saveData()">💾 Сохранить</button>
+<button onclick="loadData()">📂 Загрузить</button>
+<button onclick="clearAll()">Очистить всё</button>
+</div>
 
 </div>
 
-<div class="bottompanel">
-<span id="status">Готово</span>
-</div>
+<div class="bottom" id="status">Готово</div>
 
 <div id="map"></div>
 
